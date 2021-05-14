@@ -110,6 +110,8 @@ static bool g_hasHotplug = false;
 static bool g_waitHwcSetHotplug = false;
 #endif
 
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
 //#if RK_INVALID_REFRESH
 hwc_context_t* g_ctx = NULL;
 //#endif
@@ -194,6 +196,7 @@ class DrmHotplugHandler : public DrmEventHandler {
     DrmConnector *extend = NULL;
     DrmConnector *primary = NULL;
 
+	pthread_mutex_lock(&mutex);
     for (auto &conn : drm_->connectors()) {
       //In sleep mode,we need get raw connector state,otherwise,we will miss the chance
       //to handle hotplug event.
@@ -265,6 +268,7 @@ class DrmHotplugHandler : public DrmEventHandler {
 
     if (!primary) {
       ALOGE("hwc_hotplug: %s %d Failed to find primary display\n", __FUNCTION__, __LINE__);
+	  pthread_mutex_unlock(&mutex);
       return;
     }
 
@@ -341,6 +345,7 @@ class DrmHotplugHandler : public DrmEventHandler {
       //rk: Avoid fb handle is null which lead HDMI display nothing with GLES.
       usleep(HOTPLUG_MSLEEP*1000);
       procs_->invalidate(procs_);
+	  pthread_mutex_unlock(&mutex);
       return;
     }
 
@@ -438,6 +443,7 @@ class DrmHotplugHandler : public DrmEventHandler {
     //rk: Avoid fb handle is null which lead HDMI display nothing with GLES.
     usleep(HOTPLUG_MSLEEP*1000);
     procs_->invalidate(procs_);
+	pthread_mutex_unlock(&mutex);
   }
 
  private:
